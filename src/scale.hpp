@@ -29,12 +29,12 @@ class MenuItem
 #define LOADCELL_DOUT_PIN 19
 #define LOADCELL_SCK_PIN 18
 
-#define LOADCELL_SCALE_FACTOR 7351
+#define LOADCELL_SCALE_FACTOR 1157 // 7351
 
 #define TARE_MEASURES 20 // use the average of measure for taring
 #define TARE_THRESHOLD_COUNTS 1680 // this value is specific to the loadcell and HX711
 #define SIGNIFICANT_WEIGHT_CHANGE 5 // 5 grams changes are used to detect a significant change
-#define COFFEE_DOSE_WEIGHT 18
+#define COFFEE_DOSE_WEIGHT 16.5
 #define COFFEE_DOSE_OFFSET -2.5
 #define MAX_GRINDING_TIME 20000 // 20 seconds diff
 #define GRINDING_FAILED_WEIGHT_TO_RESET 150 // force on balance need to be measured to reset grinding
@@ -48,6 +48,13 @@ class MenuItem
 #define ROTARY_ENCODER_BUTTON_PIN 34
 #define ROTARY_ENCODER_VCC_PIN -1
 #define ROTARY_ENCODER_STEPS 4
+
+#define DOSE_ADDRESS 0
+#define OFFSET_ADDRESS 1
+#define CUP_ADDRESS 2
+#define GRIND_ADDRESS 3
+#define SCALE_ADDRESS 4
+#define CALIBRATION_ADDRESS 5
 
 extern double scaleWeight;
 extern bool wakeDisp;

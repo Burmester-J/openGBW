@@ -1,8 +1,7 @@
 #include "display.hpp"
+#include "pico/multicore.h"
 
 U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0);
-
-TaskHandle_t DisplayTask;
 
 const unsigned int SLEEP_AFTER_MS = 60 * 1000; // sleep after 60 seconds
 bool dispAsleep = false;
@@ -201,7 +200,7 @@ void showSetting(){
   }
 }
 
-void updateDisplay( void * parameter) {
+void updateDisplay() {
   char buf[64];
   char buf2[64];
 
@@ -342,12 +341,6 @@ void setupDisplay() {
   u8g2.setFontPosTop();
   u8g2.drawStr(0, 20, "Hello");
 
-  xTaskCreatePinnedToCore(
-      updateDisplay, /* Function to implement the task */
-      "Display", /* Name of the task */
-      10000,  /* Stack size in words */
-      NULL,  /* Task input parameter */
-      0,  /* Priority of the task */
-      &DisplayTask,  /* Task handle. */
-      1); /* Core where the task should run */
+  //Launch the updateDisplay function on core 1
+  multicore_launch_core1(updateDisplay);
 }

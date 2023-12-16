@@ -1,20 +1,17 @@
 #include "scale.hpp"
 #include <MathBuffer.h>
-#include <AiEsp32RotaryEncoder.h>
-#include <Preferences.h>
+#include cmath
+#include <Encoder.h>
+#include <EEPROM.h>
+#include "pico/multicore.h"
 
 HX711 loadcell;
 SimpleKalmanFilter kalmanFilter(0.02, 0.02, 0.01);
 
-Preferences preferences;
-
-
-AiEsp32RotaryEncoder rotaryEncoder = AiEsp32RotaryEncoder(ROTARY_ENCODER_A_PIN, ROTARY_ENCODER_B_PIN, ROTARY_ENCODER_BUTTON_PIN, ROTARY_ENCODER_VCC_PIN, ROTARY_ENCODER_STEPS);
+// edit encoder files like in https://github.com/PaulStoffregen/Encoder/pull/85/files
+Encoder rotaryEncoder = Encoder(ROTARY_ENCODER_A_PIN, ROTARY_ENCODER_B_PIN); // ROTARY_ENCODER_BUTTON_PIN
 
 #define ABS(a) (((a) > 0.0) ? (a) : ((a) * -1.0))
-
-TaskHandle_t ScaleTask;
-TaskHandle_t ScaleStatusTask;
 
 double scaleWeight = 0; //current weight
 bool wakeDisp = false; //wake up display with rotary click
@@ -53,6 +50,32 @@ MenuItem menuItems[9] = {
     {7, false, "Exit", 0},
     {8, false, "Reset", 0},
     {9, false, "Tare", 0}}; // structure is mostly useless for now, plan on making menu easier to customize later
+
+void writeSmallFloat(uint address, float float_value)
+{
+  u_int8_t int_value = static_cast<u_int8_t>(round(float_value * 10));
+  EEPROM.update(address, int_value);
+}
+
+float readSmallFloat(uint address)
+{
+  uint int_value = EEPROM.read(address);
+  return static_cast<float>(int_value) / 10.0;
+}
+
+void writeLargeFloat(uint address, float float_value)
+{
+  float_t value = static_cast<float_t>(float_value);
+  EEPROM.put(address, value);
+}
+
+float readLargeFloat(uint address)
+{
+  float_t value; // = 0.0;
+  EEPROM.get(address, value);
+  return value;
+}
+
 
 void grinderToggle()
 {
@@ -142,9 +165,8 @@ void rotary_onButtonClick()
   else if(scaleStatus == STATUS_IN_SUBMENU){
     if(currentSetting == 3){
 
-      preferences.begin("scale", false);
-      preferences.putDouble("offset", offset);
-      preferences.end();
+      writeSmallFloat(OFFSET_ADDRESS, offset);
+      
       scaleStatus = STATUS_IN_MENU;
       currentSetting = -1;
     }
@@ -154,58 +176,55 @@ void rotary_onButtonClick()
         setCupWeight = scaleWeight;
         Serial.println(setCupWeight);
         
-        preferences.begin("scale", false);
-        preferences.putDouble("cup", setCupWeight);
-        preferences.end();
+        
+        writeSmallFloat(CUP_ADDRESS, setCupWeight);
+        
         scaleStatus = STATUS_IN_MENU;
         currentSetting = -1;
       }
     }
     else if (currentSetting == 2)
     {
-      preferences.begin("scale", false);
-      double newCalibrationValue = preferences.getDouble("calibration", newCalibrationValue) * (scaleWeight / 100);
+      double newCalibrationValue = readLargeFloat(CALIBRATION_ADDRESS) * (scaleWeight / 100);
       Serial.println(newCalibrationValue);
-      preferences.putDouble("calibration", newCalibrationValue);
-      preferences.end();
+      writeLargeFloat(CALIBRATION_ADDRESS, newCalibrationValue);
+      EEPROM.commit();
       loadcell.set_scale(newCalibrationValue);
       scaleStatus = STATUS_IN_MENU;
       currentSetting = -1;
     }
     else if (currentSetting == 4)
     {
-      preferences.begin("scale", false);
-      preferences.putBool("scaleMode", scaleMode);
-      preferences.end();
+      
+      EEPROM.update(SCALE_ADDRESS, scaleMode);
+
       scaleStatus = STATUS_IN_MENU;
       currentSetting = -1;
     }
     else if (currentSetting == 5)
     {
-      preferences.begin("scale", false);
-      preferences.putBool("grindMode", grindMode);
-      preferences.end();
+      
+      EEPROM.update(GRIND_ADDRESS, grindMode);
+
       scaleStatus = STATUS_IN_MENU;
       currentSetting = -1;
     }
     else if (currentSetting == 7)
     {
       if(greset){
-        preferences.begin("scale", false);
-        preferences.putDouble("calibration", (double)LOADCELL_SCALE_FACTOR);
+        // writeLargeFloat(CALIBRATION_ADDRESS, LOADCELL_SCALE_FACTOR);
         setWeight = (double)COFFEE_DOSE_WEIGHT;
-        preferences.putDouble("setWeight", (double)COFFEE_DOSE_WEIGHT);
+        writeSmallFloat(DOSE_ADDRESS, setWeight);
         offset = (double)COFFEE_DOSE_OFFSET;
-        preferences.putDouble("offset", (double)COFFEE_DOSE_OFFSET);
+        writeSmallFloat(OFFSET_ADDRESS, offset);
         setCupWeight = (double)CUP_WEIGHT;
-        preferences.putDouble("cup", (double)CUP_WEIGHT);
+        writeSmallFloat(CUP_ADDRESS, setCupWeight);
         scaleMode = false;
-        preferences.putBool("scaleMode", false);
+        EEPROM.update(SCALE_ADDRESS, scaleMode);
         grindMode = true;
-        preferences.putBool("grindMode", true);
+        EEPROM.update(GRIND_ADDRESS, grindMode);
 
         loadcell.set_scale((double)LOADCELL_SCALE_FACTOR);
-        preferences.end();
       }
       
       scaleStatus = STATUS_IN_MENU;
@@ -234,9 +253,9 @@ void rotary_loop()
 
         encoderValue = newValue;
         Serial.println(newValue);
-        preferences.begin("scale", false);
-        preferences.putDouble("setWeight", setWeight);
-        preferences.end();
+
+        writeSmallFloat(DOSE_ADDRESS, setWeight);
+
       }
     else if(scaleStatus == STATUS_IN_MENU){
       int newValue = rotaryEncoder.readEncoder();
@@ -312,7 +331,7 @@ void tareScale() {
   lastTareAt = millis();
 }
 
-void updateScale( void * parameter) {
+void updateScale() {
   float lastEstimate=0;
 
 
@@ -338,7 +357,7 @@ void updateScale( void * parameter) {
 
 
 
-void scaleStatusLoop(void *p) {
+void scaleStatusLoop() {
   double tenSecAvg;
   for (;;) {
     tenSecAvg = weightHistory.averageSince((int64_t)millis() - 10000);
@@ -447,9 +466,9 @@ void scaleStatusLoop(void *p) {
         if(ABS(offset) >= setWeight){
           offset = COFFEE_DOSE_OFFSET;
         }
-        preferences.begin("scale", false);
-        preferences.putDouble("offset", offset);
-        preferences.end();
+        // preferences.begin("scale", false);
+        // preferences.putDouble("offset", offset);
+        // preferences.end();
         newOffset = false;
       }
     } else if (scaleStatus == STATUS_GRINDING_FAILED) {
@@ -494,34 +513,18 @@ void setupScale() {
   pinMode(GRINDER_ACTIVE_PIN, OUTPUT);
   digitalWrite(GRINDER_ACTIVE_PIN, 0);
 
-  preferences.begin("scale", false);
+  EEPROM.begin(256);
   
-  double scaleFactor = preferences.getDouble("calibration", (double)LOADCELL_SCALE_FACTOR);
-  setWeight = preferences.getDouble("setWeight", (double)COFFEE_DOSE_WEIGHT);
-  offset = preferences.getDouble("offset", (double)COFFEE_DOSE_OFFSET);
-  setCupWeight = preferences.getDouble("cup", (double)CUP_WEIGHT);
-  scaleMode = preferences.getBool("scaleMode", false);
-  grindMode = preferences.getBool("grindMode", true);
-
-  preferences.end();
+  double scaleFactor = readLargeFloat(SCALE_ADDRESS); // (double)LOADCELL_SCALE_FACTOR
+  setWeight = readSmallFloat(DOSE_ADDRESS); // (double)COFFEE_DOSE_WEIGHT
+  offset = readSmallFloat(OFFSET_ADDRESS); // (double)COFFEE_DOSE_OFFSET
+  setCupWeight = readSmallFloat(CUP_ADDRESS); // (double)CUP_WEIGHT
+  scaleMode = (bool)EEPROM.read(SCALE_ADDRESS); // false
+  grindMode = (bool)EEPROM.read(GRIND_ADDRESS); // true
   
   loadcell.set_scale(scaleFactor);
 
-  xTaskCreatePinnedToCore(
-      updateScale, /* Function to implement the task */
-      "Scale",     /* Name of the task */
-      10000,       /* Stack size in words */
-      NULL,        /* Task input parameter */
-      0,           /* Priority of the task */
-      &ScaleTask,  /* Task handle. */
-      1);          /* Core where the task should run */
+  multicore_launch_core1(updateScale());
+  multicore_launch_core1(scaleStatusLoop());
 
-  xTaskCreatePinnedToCore(
-      scaleStatusLoop, /* Function to implement the task */
-      "ScaleStatus", /* Name of the task */
-      10000,  /* Stack size in words */
-      NULL,  /* Task input parameter */
-      0,  /* Priority of the task */
-      &ScaleStatusTask,  /* Task handle. */
-      1);            /* Core where the task should run */
 }

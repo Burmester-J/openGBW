@@ -7,7 +7,7 @@ HX711 loadcell;
 SimpleKalmanFilter kalmanFilter(0.02, 0.02, 0.01);
 
 // edit encoder files like in https://github.com/PaulStoffregen/Encoder/pull/85/files
-Encoder rotaryEncoder(ROTARY_ENCODER_A_PIN, ROTARY_ENCODER_B_PIN); // ROTARY_ENCODER_BUTTON_PIN
+Encoder* rotaryEncoder;
 
 #define ABS(a) (((a) > 0.0) ? (a) : ((a) * -1.0))
 
@@ -163,7 +163,7 @@ void rotary_onButtonClick()
       greset = false;
       Serial.println("Reset Menu");
     }
-    else if (currentMenuItem == MENU_ITEM_RESET)
+    else if (currentMenuItem == MENU_ITEM_RESET) // TODO: this should probably be something else
     {
       scaleStatus = STATUS_TARING;
       currentSetting = MENU_ITEM_NONE;
@@ -172,7 +172,7 @@ void rotary_onButtonClick()
     }
   }
   else if(scaleStatus == STATUS_IN_SUBMENU){
-    if(currentSetting == 3){
+    if(currentSetting == MENU_ITEM_OFFSET){
 
       writeSmallFloat(OFFSET_ADDRESS, offset);
       EEPROM.commit();
@@ -208,7 +208,7 @@ void rotary_onButtonClick()
     else if (currentSetting == MENU_ITEM_SCALE_MODE)
     {
       
-      // EEPROM.update(SCALE_ADDRESS, scaleMode);
+      EEPROM.update(SCALE_ADDRESS, scaleMode);
 
       scaleStatus = STATUS_IN_MENU;
       currentSetting = MENU_ITEM_NONE;
@@ -216,7 +216,7 @@ void rotary_onButtonClick()
     else if (currentSetting == MENU_ITEM_GRINDING_MODE)
     {
       
-      // EEPROM.update(GRIND_ADDRESS, grindMode);
+      EEPROM.update(GRIND_ADDRESS, grindMode);
 
       scaleStatus = STATUS_IN_MENU;
       currentSetting = MENU_ITEM_NONE;
@@ -240,13 +240,14 @@ void rotary_onButtonClick()
       currentSetting = MENU_ITEM_NONE;
     }
   }
+  delay(50);
 }
 
 
 
 void rotary_loop()
 {
-  if (encoderValue != rotaryEncoder.read()) // encoder changed
+  if (encoderValue != (rotaryEncoder->read()+2)/4) // encoder changed (rounded)
   {
     wakeDisp = 1;
     lastAction = millis();
@@ -255,7 +256,7 @@ void rotary_loop()
       return;
     
     if(scaleStatus == STATUS_EMPTY){
-        int newValue = rotaryEncoder.read();
+        int newValue = (rotaryEncoder->read()+2)/4;
         Serial.print("Value: ");
 
         setWeight += ((float)newValue - (float)encoderValue) / 10 * encoderDir;
@@ -268,7 +269,7 @@ void rotary_loop()
 
       }
     else if(scaleStatus == STATUS_IN_MENU){
-      int newValue = rotaryEncoder.read();
+      int newValue = (rotaryEncoder->read()+2)/4;
       currentMenuItem = (currentMenuItem + (newValue - encoderValue) * encoderDir) % menuItemsCount;
       currentMenuItem = currentMenuItem < 0 ? menuItemsCount + currentMenuItem : currentMenuItem;
       encoderValue = newValue;
@@ -276,7 +277,7 @@ void rotary_loop()
     }
     else if(scaleStatus == STATUS_IN_SUBMENU){
       if(currentSetting == MENU_ITEM_OFFSET){ //offset menu
-        int newValue = rotaryEncoder.read();
+        int newValue = (rotaryEncoder->read()+2)/4;
         Serial.print("Value: ");
 
         offset += ((float)newValue - (float)encoderValue) * encoderDir / 100;
@@ -287,15 +288,15 @@ void rotary_loop()
         }
       }
       else if(currentSetting == MENU_ITEM_SCALE_MODE){
-        scaleMode = !scaleMode;
+        scaleMode = (rotaryEncoder->read()+2)/4 % 2;
       }
       else if (currentSetting == MENU_ITEM_GRINDING_MODE)
       {
-        grindMode = !grindMode;
+        grindMode = (rotaryEncoder->read()+2)/4 % 2;
       }
       else if (currentSetting == MENU_ITEM_RESET)
       {
-        greset = !greset;
+        greset = (rotaryEncoder->read()+2)/4 % 2;
       }
     }
   }
@@ -493,6 +494,8 @@ void scaleStatusLoop() {
 
 void setupScale() {
   loadcell.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
+
+  rotaryEncoder = new Encoder(ROTARY_ENCODER_A_PIN, ROTARY_ENCODER_B_PIN);
 
   pinMode(ROTARY_ENCODER_BUTTON_PIN, INPUT_PULLUP); //INPUT_PULLUP ?
   pinMode(GRINDER_ACTIVE_PIN, OUTPUT);

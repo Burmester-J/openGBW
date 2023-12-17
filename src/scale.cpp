@@ -73,9 +73,20 @@ void writeLargeFloat(uint address, float float_value)
 
 float readLargeFloat(uint address)
 {
-  float_t value; // = 0.0;
+  float_t value;
   EEPROM.get(address, value);
   return value;
+}
+
+void writePresetValues()
+{
+  EEPROM.update(INIT_ADDRESS, 17);
+  writeLargeFloat(CALIBRATION_ADDRESS, LOADCELL_SCALE_FACTOR);
+  writeSmallFloat(DOSE_ADDRESS, COFFEE_DOSE_WEIGHT);
+  writeSmallFloat(OFFSET_ADDRESS, COFFEE_DOSE_OFFSET);
+  writeSmallFloat(CUP_ADDRESS, CUP_WEIGHT);
+  // EEPROM.update(SCALE_ADDRESS, false);
+  // EEPROM.update(GRIND_ADDRESS, true);
 }
 
 
@@ -166,6 +177,7 @@ void rotary_onButtonClick()
     if(currentSetting == 3){
 
       writeSmallFloat(OFFSET_ADDRESS, offset);
+      EEPROM.commit();
       
       scaleStatus = STATUS_IN_MENU;
       currentSetting = -1;
@@ -176,8 +188,8 @@ void rotary_onButtonClick()
         setCupWeight = scaleWeight;
         Serial.println(setCupWeight);
         
-        
         writeSmallFloat(CUP_ADDRESS, setCupWeight);
+        EEPROM.commit();
         
         scaleStatus = STATUS_IN_MENU;
         currentSetting = -1;
@@ -187,8 +199,10 @@ void rotary_onButtonClick()
     {
       double newCalibrationValue = readLargeFloat(CALIBRATION_ADDRESS) * (scaleWeight / 100);
       Serial.println(newCalibrationValue);
+
       writeLargeFloat(CALIBRATION_ADDRESS, newCalibrationValue);
       EEPROM.commit();
+
       loadcell.set_scale(newCalibrationValue);
       scaleStatus = STATUS_IN_MENU;
       currentSetting = -1;
@@ -196,7 +210,7 @@ void rotary_onButtonClick()
     else if (currentSetting == 4)
     {
       
-      EEPROM.update(SCALE_ADDRESS, scaleMode);
+      // EEPROM.update(SCALE_ADDRESS, scaleMode);
 
       scaleStatus = STATUS_IN_MENU;
       currentSetting = -1;
@@ -204,7 +218,7 @@ void rotary_onButtonClick()
     else if (currentSetting == 5)
     {
       
-      EEPROM.update(GRIND_ADDRESS, grindMode);
+      // EEPROM.update(GRIND_ADDRESS, grindMode);
 
       scaleStatus = STATUS_IN_MENU;
       currentSetting = -1;
@@ -212,17 +226,14 @@ void rotary_onButtonClick()
     else if (currentSetting == 7)
     {
       if(greset){
-        // writeLargeFloat(CALIBRATION_ADDRESS, LOADCELL_SCALE_FACTOR);
         setWeight = (double)COFFEE_DOSE_WEIGHT;
-        writeSmallFloat(DOSE_ADDRESS, setWeight);
         offset = (double)COFFEE_DOSE_OFFSET;
-        writeSmallFloat(OFFSET_ADDRESS, offset);
         setCupWeight = (double)CUP_WEIGHT;
-        writeSmallFloat(CUP_ADDRESS, setCupWeight);
         scaleMode = false;
-        EEPROM.update(SCALE_ADDRESS, scaleMode);
         grindMode = true;
-        EEPROM.update(GRIND_ADDRESS, grindMode);
+
+        writePresetValues();
+        EEPROM.commit();
 
         loadcell.set_scale((double)LOADCELL_SCALE_FACTOR);
       }
@@ -255,6 +266,7 @@ void rotary_loop()
         Serial.println(newValue);
 
         writeSmallFloat(DOSE_ADDRESS, setWeight);
+        EEPROM.commit();
 
       }
     else if(scaleStatus == STATUS_IN_MENU){
@@ -414,7 +426,7 @@ void scaleStatusLoop() {
         continue;
       }
 
-      if ( ((millis() - startedGrindingAt) > 3000) // started grinding at least 3s ago
+      if ( ((millis() - startedGrindingAt) > GRINDING_DELAY_TOLERANCE) // started grinding at least 3s ago
             && ((scaleWeight - weightHistory.firstValueOlderThan(millis() - 2000)) < 0.5) // less than a gram has been grinded in the last 2 second
             && !scaleMode) {
         Serial.println("Failed because no change in weight was detected");
@@ -493,8 +505,15 @@ void setupScale() {
   digitalWrite(GRINDER_ACTIVE_PIN, 0);
 
   EEPROM.begin(256);
+
+  // uninitialized EEPROM
+  if (EEPROM.read(INIT_ADDRESS) != 17)
+  {
+    writePresetValues();
+    EEPROM.commit();
+  }
   
-  double scaleFactor = readLargeFloat(SCALE_ADDRESS); // (double)LOADCELL_SCALE_FACTOR
+  double scaleFactor = readLargeFloat(CALIBRATION_ADDRESS); // (double)LOADCELL_SCALE_FACTOR
   setWeight = readSmallFloat(DOSE_ADDRESS); // (double)COFFEE_DOSE_WEIGHT
   offset = readSmallFloat(OFFSET_ADDRESS); // (double)COFFEE_DOSE_OFFSET
   setCupWeight = readSmallFloat(CUP_ADDRESS); // (double)CUP_WEIGHT

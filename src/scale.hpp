@@ -36,7 +36,8 @@ class MenuItem
 #define SIGNIFICANT_WEIGHT_CHANGE 5 // 5 grams changes are used to detect a significant change
 #define COFFEE_DOSE_WEIGHT 16.5
 #define COFFEE_DOSE_OFFSET -2.5
-#define MAX_GRINDING_TIME 20000 // 20 seconds diff
+#define MAX_GRINDING_TIME 30000 // 30 seconds diff
+#define GRINDING_DELAY_TOLERANCE 5000 // 5 seconds
 #define GRINDING_FAILED_WEIGHT_TO_RESET 150 // force on balance need to be measured to reset grinding
 
 #define GRINDER_ACTIVE_PIN 33
@@ -49,12 +50,13 @@ class MenuItem
 #define ROTARY_ENCODER_VCC_PIN -1
 #define ROTARY_ENCODER_STEPS 4
 
-#define DOSE_ADDRESS 0
-#define OFFSET_ADDRESS 1
-#define CUP_ADDRESS 2
-#define GRIND_ADDRESS 3
-#define SCALE_ADDRESS 4
-#define CALIBRATION_ADDRESS 5
+#define INIT_ADDRESS 0
+#define DOSE_ADDRESS 1
+#define OFFSET_ADDRESS 2
+#define CUP_ADDRESS 3
+#define GRIND_ADDRESS 4
+#define SCALE_ADDRESS 5
+#define CALIBRATION_ADDRESS 6
 
 extern double scaleWeight;
 extern bool wakeDisp;

@@ -83,10 +83,21 @@ void writePresetValues()
   writeSmallFloat(DOSE_ADDRESS, COFFEE_DOSE_WEIGHT);
   writeSmallFloat(OFFSET_ADDRESS, COFFEE_DOSE_OFFSET);
   writeSmallFloat(CUP_ADDRESS, CUP_WEIGHT);
-  // EEPROM.update(SCALE_ADDRESS, false);
-  // EEPROM.update(GRIND_ADDRESS, true);
+  EEPROM.update(SCALE_ADDRESS, false);
+  EEPROM.update(GRIND_ADDRESS, true);
 }
 
+int encoderRead()
+{
+  int value = rotaryEncoder->read();
+  if (value > 0) {
+    return (value + 2) / 4;
+  } else if (value < 0) {
+    return (value - 2) / 4;
+  } else {
+    return 0;
+  }
+}
 
 void grinderToggle()
 {
@@ -247,7 +258,7 @@ void rotary_onButtonClick()
 
 void rotary_loop()
 {
-  if (encoderValue != (rotaryEncoder->read()+2)/4) // encoder changed (rounded)
+  if (encoderValue != encoderRead()) // encoder changed (rounded)
   {
     wakeDisp = 1;
     lastAction = millis();
@@ -256,7 +267,7 @@ void rotary_loop()
       return;
     
     if(scaleStatus == STATUS_EMPTY){
-        int newValue = (rotaryEncoder->read()+2)/4;
+        int newValue = encoderRead();
         Serial.print("Value: ");
 
         setWeight += ((float)newValue - (float)encoderValue) / 10 * encoderDir;
@@ -269,7 +280,7 @@ void rotary_loop()
 
       }
     else if(scaleStatus == STATUS_IN_MENU){
-      int newValue = (rotaryEncoder->read()+2)/4;
+      int newValue = encoderRead();
       currentMenuItem = (currentMenuItem + (newValue - encoderValue) * encoderDir) % menuItemsCount;
       currentMenuItem = currentMenuItem < 0 ? menuItemsCount + currentMenuItem : currentMenuItem;
       encoderValue = newValue;
@@ -277,7 +288,7 @@ void rotary_loop()
     }
     else if(scaleStatus == STATUS_IN_SUBMENU){
       if(currentSetting == MENU_ITEM_OFFSET){ //offset menu
-        int newValue = (rotaryEncoder->read()+2)/4;
+        int newValue = encoderRead();
         Serial.print("Value: ");
 
         offset += ((float)newValue - (float)encoderValue) * encoderDir / 100;
@@ -288,15 +299,15 @@ void rotary_loop()
         }
       }
       else if(currentSetting == MENU_ITEM_SCALE_MODE){
-        scaleMode = (rotaryEncoder->read()+2)/4 % 2;
+        scaleMode = encoderRead();
       }
       else if (currentSetting == MENU_ITEM_GRINDING_MODE)
       {
-        grindMode = (rotaryEncoder->read()+2)/4 % 2;
+        grindMode = encoderRead();
       }
       else if (currentSetting == MENU_ITEM_RESET)
       {
-        greset = (rotaryEncoder->read()+2)/4 % 2;
+        greset = encoderRead();
       }
     }
   }
@@ -497,7 +508,7 @@ void setupScale() {
 
   rotaryEncoder = new Encoder(ROTARY_ENCODER_A_PIN, ROTARY_ENCODER_B_PIN);
 
-  pinMode(ROTARY_ENCODER_BUTTON_PIN, INPUT_PULLUP); //INPUT_PULLUP ?
+  pinMode(ROTARY_ENCODER_BUTTON_PIN, INPUT_PULLUP); 
   pinMode(GRINDER_ACTIVE_PIN, OUTPUT);
   digitalWrite(GRINDER_ACTIVE_PIN, 0);
 

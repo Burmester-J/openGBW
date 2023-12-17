@@ -1,7 +1,7 @@
 #include "display.hpp"
-#include "pico/multicore.h"
 
-U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0);
+// U8G2_R0 is no rotation, U8G2_R2 is 180° flipped
+U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0); // DISPLAY_SCL_PIN, DISPLAY_SDA_PIN are not needed, because we use hardware I2C
 
 const unsigned int SLEEP_AFTER_MS = 60 * 1000; // sleep after 60 seconds
 bool dispAsleep = false;
@@ -204,143 +204,143 @@ void updateDisplay() {
   char buf[64];
   char buf2[64];
 
-  for(;;) {
-    u8g2.clearBuffer();
+  u8g2.clearBuffer();
 
-    if (dispAsleep && !wakeDisp)
-      continue;
+  if (dispAsleep && !wakeDisp)
+    return;
 
-    if (!wakeDisp
-        && (millis() - lastAction) > SLEEP_AFTER_MS) {
-      u8g2.sendBuffer();
-      delay(100);
-      dispAsleep = true;
-      continue;
-    }
-
-    dispAsleep = false;
-
-    if (scaleLastUpdatedAt == 0) {
-      u8g2.setFontPosTop();
-      u8g2.drawStr(0, 20, "Initializing...");
-    } else if (!scaleReady) {
-      u8g2.setFontPosTop();
-      u8g2.drawStr(0, 20, "SCALE ERROR");
-    } else {
-      if (scaleStatus == STATUS_GRINDING_IN_PROGRESS) {
-        u8g2.setFontPosTop();
-        u8g2.setFont(u8g2_font_7x13_tr);
-        CenterPrintToScreen("Grinding...", 0);
-
-
-        u8g2.setFontPosCenter();
-        u8g2.setFont(u8g2_font_7x14B_tf);
-        u8g2.setCursor(3, 32);
-        snprintf(buf, sizeof(buf), "%3.1fg", scaleWeight - cupWeightEmpty);
-        u8g2.print(buf);
-
-        u8g2.setFontPosCenter();
-        u8g2.setFont(u8g2_font_unifont_t_symbols);
-        u8g2.drawGlyph(64, 32, 0x2794);
-
-        u8g2.setFontPosCenter();
-        u8g2.setFont(u8g2_font_7x14B_tf);
-        u8g2.setCursor(84, 32);
-        snprintf(buf, sizeof(buf), "%3.1fg", setWeight);
-        u8g2.print(buf);
-
-        u8g2.setFontPosBottom();
-        u8g2.setFont(u8g2_font_7x13_tr);
-        snprintf(buf, sizeof(buf), "%3.1fs", startedGrindingAt > 0 ? (double)(millis() - startedGrindingAt) / 1000 : 0);
-        CenterPrintToScreen(buf, 64);
-      } else if (scaleStatus == STATUS_EMPTY) {
-        u8g2.setFontPosTop();
-        u8g2.setFont(u8g2_font_7x13_tr);
-        CenterPrintToScreen("Weight:", 0);
-
-        u8g2.setFont(u8g2_font_7x14B_tf);
-        u8g2.setFontPosCenter();
-        u8g2.setCursor(0, 28);
-        snprintf(buf, sizeof(buf), "%3.1fg", abs(scaleWeight));
-        CenterPrintToScreen(buf, 32);
-
-        u8g2.setFont(u8g2_font_7x13_tf);
-        u8g2.setFontPosCenter();
-        u8g2.setCursor(5, 50);
-        snprintf(buf2, sizeof(buf2), "Set: %3.1fg", setWeight);
-        LeftPrintToScreen(buf2, 50);
-
-        
-      } else if (scaleStatus == STATUS_GRINDING_FAILED) {
-
-        u8g2.setFontPosTop();
-        u8g2.setFont(u8g2_font_7x14B_tf);
-        CenterPrintToScreen("Grinding failed", 0);
-
-        u8g2.setFontPosTop();
-        u8g2.setFont(u8g2_font_7x13_tr);
-        CenterPrintToScreen("Press the balance", 32);
-        CenterPrintToScreen("to reset", 42);
-      } else if (scaleStatus == STATUS_GRINDING_FINISHED) {
-
-        u8g2.setFontPosTop();
-        u8g2.setFont(u8g2_font_7x13_tr);
-        u8g2.setCursor(0, 0);
-        CenterPrintToScreen("Grinding finished", 0);
-
-        u8g2.setFontPosCenter();
-        u8g2.setFont(u8g2_font_7x14B_tf);
-        u8g2.setCursor(3, 32);
-        snprintf(buf, sizeof(buf), "%3.1fg", scaleWeight - cupWeightEmpty);
-        u8g2.print(buf);
-
-        u8g2.setFontPosCenter();
-        u8g2.setFont(u8g2_font_unifont_t_symbols);
-        u8g2.drawGlyph(64, 32, 0x2794);
-
-        u8g2.setFontPosCenter();
-        u8g2.setFont(u8g2_font_7x14B_tf);
-        u8g2.setCursor(84, 32);
-        snprintf(buf, sizeof(buf), "%3.1fg", setWeight);
-        u8g2.print(buf);
-
-        u8g2.setFontPosBottom();
-        u8g2.setFont(u8g2_font_7x13_tr);
-        u8g2.setCursor(64, 64);
-        snprintf(buf, sizeof(buf), "%3.1fs", (double)(finishedGrindingAt - startedGrindingAt) / 1000);
-        CenterPrintToScreen(buf, 64);
-      }
-      else if (scaleStatus == STATUS_IN_MENU)
-      {
-        showMenu();
-      }
-      else if (scaleStatus == STATUS_IN_SUBMENU)
-      {
-        showSetting();
-      }
-      else if (scaleStatus == STATUS_TARING)
-      {
-        char buf[16];
-        u8g2.clearBuffer();
-        u8g2.setFontPosTop();
-        u8g2.setFont(u8g2_font_7x13_tr);
-        CenterPrintToScreen("Taring...", 20);
-        u8g2.setFont(u8g2_font_7x13_tr);
-        CenterPrintToScreen("Remove weight", 38);
-        u8g2.sendBuffer();
-      }
-    }
+  if (!wakeDisp
+      && (millis() - lastAction) > SLEEP_AFTER_MS) {
     u8g2.sendBuffer();
-    // delay(100);
+    delay(100);
+    dispAsleep = true;
+    return;
   }
+
+  dispAsleep = false;
+
+  if (scaleLastUpdatedAt == 0) {
+    u8g2.setFontPosTop();
+    u8g2.drawStr(0, 20, "Initializing...");
+    Serial.println("Initializing");
+  } else if (!scaleReady) {
+    u8g2.setFontPosTop();
+    u8g2.drawStr(0, 20, "SCALE ERROR");
+  } else {
+    if (scaleStatus == STATUS_GRINDING_IN_PROGRESS) {
+      u8g2.setFontPosTop();
+      u8g2.setFont(u8g2_font_7x13_tr);
+      CenterPrintToScreen("Grinding...", 0);
+
+
+      u8g2.setFontPosCenter();
+      u8g2.setFont(u8g2_font_7x14B_tf);
+      u8g2.setCursor(3, 32);
+      snprintf(buf, sizeof(buf), "%3.1fg", scaleWeight - cupWeightEmpty);
+      u8g2.print(buf);
+
+      u8g2.setFontPosCenter();
+      u8g2.setFont(u8g2_font_unifont_t_symbols);
+      u8g2.drawGlyph(64, 32, 0x2794);
+
+      u8g2.setFontPosCenter();
+      u8g2.setFont(u8g2_font_7x14B_tf);
+      u8g2.setCursor(84, 32);
+      snprintf(buf, sizeof(buf), "%3.1fg", setWeight);
+      u8g2.print(buf);
+
+      u8g2.setFontPosBottom();
+      u8g2.setFont(u8g2_font_7x13_tr);
+      snprintf(buf, sizeof(buf), "%3.1fs", startedGrindingAt > 0 ? (double)(millis() - startedGrindingAt) / 1000 : 0);
+      CenterPrintToScreen(buf, 64);
+    } else if (scaleStatus == STATUS_EMPTY) {
+      u8g2.setFontPosTop();
+      u8g2.setFont(u8g2_font_7x13_tr);
+      CenterPrintToScreen("Weight:", 0);
+
+      u8g2.setFont(u8g2_font_7x14B_tf);
+      u8g2.setFontPosCenter();
+      u8g2.setCursor(0, 28);
+      snprintf(buf, sizeof(buf), "%3.1fg", abs(scaleWeight));
+      CenterPrintToScreen(buf, 32);
+
+      u8g2.setFont(u8g2_font_7x13_tf);
+      u8g2.setFontPosCenter();
+      u8g2.setCursor(5, 50);
+      snprintf(buf2, sizeof(buf2), "Set: %3.1fg", setWeight);
+      LeftPrintToScreen(buf2, 50);
+
+      
+    } else if (scaleStatus == STATUS_GRINDING_FAILED) {
+
+      u8g2.setFontPosTop();
+      u8g2.setFont(u8g2_font_7x14B_tf);
+      CenterPrintToScreen("Grinding failed", 0);
+
+      u8g2.setFontPosTop();
+      u8g2.setFont(u8g2_font_7x13_tr);
+      CenterPrintToScreen("Press the balance", 32);
+      CenterPrintToScreen("to reset", 42);
+    } else if (scaleStatus == STATUS_GRINDING_FINISHED) {
+
+      u8g2.setFontPosTop();
+      u8g2.setFont(u8g2_font_7x13_tr);
+      u8g2.setCursor(0, 0);
+      CenterPrintToScreen("Grinding finished", 0);
+
+      u8g2.setFontPosCenter();
+      u8g2.setFont(u8g2_font_7x14B_tf);
+      u8g2.setCursor(3, 32);
+      snprintf(buf, sizeof(buf), "%3.1fg", scaleWeight - cupWeightEmpty);
+      u8g2.print(buf);
+
+      u8g2.setFontPosCenter();
+      u8g2.setFont(u8g2_font_unifont_t_symbols);
+      u8g2.drawGlyph(64, 32, 0x2794);
+
+      u8g2.setFontPosCenter();
+      u8g2.setFont(u8g2_font_7x14B_tf);
+      u8g2.setCursor(84, 32);
+      snprintf(buf, sizeof(buf), "%3.1fg", setWeight);
+      u8g2.print(buf);
+
+      u8g2.setFontPosBottom();
+      u8g2.setFont(u8g2_font_7x13_tr);
+      u8g2.setCursor(64, 64);
+      snprintf(buf, sizeof(buf), "%3.1fs", (double)(finishedGrindingAt - startedGrindingAt) / 1000);
+      CenterPrintToScreen(buf, 64);
+    }
+    else if (scaleStatus == STATUS_IN_MENU)
+    {
+      showMenu();
+    }
+    else if (scaleStatus == STATUS_IN_SUBMENU)
+    {
+      showSetting();
+    }
+    else if (scaleStatus == STATUS_TARING)
+    {
+      char buf[16];
+      u8g2.clearBuffer();
+      u8g2.setFontPosTop();
+      u8g2.setFont(u8g2_font_7x13_tr);
+      CenterPrintToScreen("Taring...", 20);
+      u8g2.setFont(u8g2_font_7x13_tr);
+      CenterPrintToScreen("Remove weight", 38);
+      u8g2.sendBuffer();
+    }
+  }
+  u8g2.sendBuffer();
+  // delay(100);
 }
 
 void setupDisplay() {
   u8g2.begin();
+  u8g2.clearBuffer();
   u8g2.setFont(u8g2_font_7x13_tr);
   u8g2.setFontPosTop();
   u8g2.drawStr(0, 20, "Hello");
+  u8g2.sendBuffer();
 
-  //Launch the updateDisplay function on core 1
-  multicore_launch_core1(updateDisplay);
+  Serial.println("Display Setup");
 }

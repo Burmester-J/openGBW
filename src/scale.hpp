@@ -23,11 +23,11 @@ class MenuItem
 #define STATUS_IN_SUBSUBMENU 6
 #define STATUS_TARING 7
 
-#define CUP_WEIGHT 70
+#define CUP_WEIGHT 69
 #define CUP_DETECTION_TOLERANCE 5 // 5 grams tolerance above or bellow cup weight to detect it
 
-#define LOADCELL_DOUT_PIN 19
-#define LOADCELL_SCK_PIN 18
+#define LOADCELL_DOUT_PIN 18 //24
+#define LOADCELL_SCK_PIN 19 //25
 
 #define LOADCELL_SCALE_FACTOR 1157 // 7351
 
@@ -40,13 +40,14 @@ class MenuItem
 #define GRINDING_DELAY_TOLERANCE 5000 // 5 seconds
 #define GRINDING_FAILED_WEIGHT_TO_RESET 150 // force on balance need to be measured to reset grinding
 
-#define GRINDER_ACTIVE_PIN 33
+#define GRINDER_ACTIVE_PIN 22 //29
+#define GRIND_BUTTON_PIN 14 //19
 
 #define TARE_MIN_INTERVAL 60 * 1000 // auto-tare at most once every 60 seconds
 
-#define ROTARY_ENCODER_A_PIN 32
-#define ROTARY_ENCODER_B_PIN 23
-#define ROTARY_ENCODER_BUTTON_PIN 34
+#define ROTARY_ENCODER_A_PIN 8 //11
+#define ROTARY_ENCODER_B_PIN 9 //12
+#define ROTARY_ENCODER_BUTTON_PIN 10 //14
 #define ROTARY_ENCODER_VCC_PIN -1
 #define ROTARY_ENCODER_STEPS 4
 
@@ -80,3 +81,5 @@ extern int currentMenuItem;
 extern int currentSetting;
 
 void setupScale();
+void updateScale();
+void scaleStatusLoop();

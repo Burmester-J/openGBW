@@ -40,7 +40,7 @@ The included 3D Models are adapted to the Eureka Mignon XL, but the electronics 
 
 #### Load Cell
 
-| Load Cell  | HX711 | ESP32  |
+| Load Cell  | HX711 | PICO  |
 |---|---|---|
 | black  | E-  | |
 | red  | E+  | |
@@ -48,37 +48,41 @@ The included 3D Models are adapted to the Eureka Mignon XL, but the electronics 
 | white  | A-  | |
 |   | VCC  | VCC/3.3 |
 |   | GND  | GND |
-|   | SCK  | GPIO 18 |
-|   | DT  | GPIO 19|
+|   | SCK  | GP18 (24) |
+|   | DT  | GP19 (25) |
 
 #### Display
 
-| Display | ESP32 |
+| Display | PICO |
 |---|---|
 | VCC | VCC/3.3 |
 | GND | GND |
-| SCL | GPIO 22 |
-| SDA | GPIO 21 |
+| SCL | GP5 (7) |
+| SDA | GP4 (6) |
 
 #### Relay
 
-| Relay | ESP32 | Grinder |
+| Relay | PICO | 
 |---|---|---|
-| + | VCC/3.3 | |
-| - | GND | |
-| S | GPIO 33 | |
-| Middle Screw Terminal | | push button |
-| NO Screw Terminal | | push button |
+| + | GP22 (29) |
+| - | GND |
 
 #### Rotary Encoder
 
-| Encoder | ESP32 |
+| Encoder | PICO |
 |---|---|
 | VCC/+ | VCC/3.3 |
 | GND | GND |
-| SW | GPIO 34 |
-| DT | GPIO 23 |
-| CLK | GPIO 32 |
+| CLK | GP8 (11) | 
+| DT | GP9 (12) |
+| SW | GP10 (14) | (button pin)
+
+#### Button
+
+| Button | PICO | 
+|---|---|---|
+| + | GP14 (19) |
+| - | GND |
 
 -----------
 

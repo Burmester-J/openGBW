@@ -5,7 +5,8 @@
 
 void setup() {
   Serial.begin(9600);
-  while(!Serial){delay(100);}
+  //while(!Serial){delay(100);}
+  delay(1000);
   
   setupDisplay();
 
@@ -19,7 +20,8 @@ void loop() {
 
 void setup1(){
   Serial.begin(9600);
-  while(!Serial){delay(100);}
+  //while(!Serial){delay(100);}
+  delay(1000);
 
   setupScale();
 }

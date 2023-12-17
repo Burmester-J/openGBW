@@ -39,15 +39,14 @@ int currentSetting;
 int encoderValue = 0;
 int menuItemsCount = 9;
 MenuItem menuItems[9] = {
-    {1, false, "Manual Grind", 0},
-    {2, false, "Cup weight", 1, &setCupWeight},
-    {3, false, "Calibrate", 0},
-    {4, false, "Offset", 0.1, &offset},
-    {5, false, "Scale Mode", 0},
-    {6, false, "Grinding Mode", 0},
-    {7, false, "Exit", 0},
-    {8, false, "Reset", 0},
-    {9, false, "Tare", 0}}; // structure is mostly useless for now, plan on making menu easier to customize later
+    {MENU_ITEM_MANUAL_GRIND, false, "Manual Grind", 0},
+    {MENU_ITEM_CUP_WEIGHT, false, "Cup weight", 1, &setCupWeight},
+    {MENU_ITEM_CALIBRATE, false, "Calibrate", 0},
+    {MENU_ITEM_OFFSET, false, "Offset", 0.1, &offset},
+    {MENU_ITEM_SCALE_MODE, false, "Scale Mode", 0},
+    {MENU_ITEM_GRINDING_MODE, false, "Grinding Mode", 0},
+    {MENU_ITEM_EXIT, false, "Exit", 0},
+    {MENU_ITEM_RESET, false, "Reset", 0}}; // structure is mostly useless for now, plan on making menu easier to customize later
 
 void writeSmallFloat(uint address, float float_value)
 {
@@ -115,59 +114,59 @@ void rotary_onButtonClick()
 
   if(scaleStatus == STATUS_EMPTY){
     scaleStatus = STATUS_IN_MENU;
-    currentMenuItem = 0;
+    currentMenuItem = MENU_ITEM_MANUAL_GRIND;
   }
   else if(scaleStatus == STATUS_IN_MENU){
-    if(currentMenuItem == 6){
+    if(currentMenuItem == MENU_ITEM_EXIT){
       scaleStatus = STATUS_EMPTY;
       Serial.println("Exited Menu");
     }
-    else if (currentMenuItem == 0)
+    else if (currentMenuItem == MENU_ITEM_MANUAL_GRIND)
     {
       grinderToggle();
-      currentSetting = 0;
+      currentSetting = MENU_ITEM_MANUAL_GRIND;
       Serial.println("Manual Grind Menu");
     }
-    else if (currentMenuItem == 3){
+    else if (currentMenuItem == MENU_ITEM_OFFSET){
       scaleStatus = STATUS_IN_SUBMENU;
-      currentSetting = 3;
+      currentSetting = MENU_ITEM_OFFSET;
       Serial.println("Offset Menu");
     }
-    else if (currentMenuItem == 1)
+    else if (currentMenuItem == MENU_ITEM_CUP_WEIGHT)
     {
       scaleStatus = STATUS_IN_SUBMENU;
-      currentSetting = 1;
+      currentSetting = MENU_ITEM_CUP_WEIGHT;
       Serial.println("Cup Menu");
     }
-    else if (currentMenuItem == 2)
+    else if (currentMenuItem == MENU_ITEM_CALIBRATE)
     {
       scaleStatus = STATUS_IN_SUBMENU;
-      currentSetting = 2;
+      currentSetting = MENU_ITEM_CALIBRATE;
       Serial.println("Calibration Menu");
     }
-    else if (currentMenuItem == 4)
+    else if (currentMenuItem == MENU_ITEM_SCALE_MODE)
     {
       scaleStatus = STATUS_IN_SUBMENU;
-      currentSetting = 4;
+      currentSetting = MENU_ITEM_SCALE_MODE;
       Serial.println("Scale Mode Menu");
     }
-    else if (currentMenuItem == 5)
+    else if (currentMenuItem == MENU_ITEM_GRINDING_MODE)
     {
       scaleStatus = STATUS_IN_SUBMENU;
-      currentSetting = 5;
+      currentSetting = MENU_ITEM_GRINDING_MODE;
       Serial.println("Grind Mode Menu");
     }
-    else if (currentMenuItem == 7)
+    else if (currentMenuItem == MENU_ITEM_RESET)
     {
       scaleStatus = STATUS_IN_SUBMENU;
-      currentSetting = 7;
+      currentSetting = MENU_ITEM_RESET;
       greset = false;
       Serial.println("Reset Menu");
     }
-    else if (currentMenuItem == 8)
+    else if (currentMenuItem == MENU_ITEM_RESET)
     {
       scaleStatus = STATUS_TARING;
-      currentSetting = -1;
+      currentSetting = MENU_ITEM_NONE;
       lastTareAt = 0;
       Serial.println("Taring");
     }
@@ -179,9 +178,9 @@ void rotary_onButtonClick()
       EEPROM.commit();
       
       scaleStatus = STATUS_IN_MENU;
-      currentSetting = -1;
+      currentSetting = MENU_ITEM_NONE;
     }
-    else if (currentSetting == 1)
+    else if (currentSetting == MENU_ITEM_CUP_WEIGHT)
     {
       if(scaleWeight > 30){       //prevent accidental setting with no cup
         setCupWeight = scaleWeight;
@@ -191,10 +190,10 @@ void rotary_onButtonClick()
         EEPROM.commit();
         
         scaleStatus = STATUS_IN_MENU;
-        currentSetting = -1;
+        currentSetting = MENU_ITEM_NONE;
       }
     }
-    else if (currentSetting == 2)
+    else if (currentSetting == MENU_ITEM_CALIBRATE)
     {
       double newCalibrationValue = readLargeFloat(CALIBRATION_ADDRESS) * (scaleWeight / 100);
       Serial.println(newCalibrationValue);
@@ -204,25 +203,25 @@ void rotary_onButtonClick()
 
       loadcell.set_scale(newCalibrationValue);
       scaleStatus = STATUS_IN_MENU;
-      currentSetting = -1;
+      currentSetting = MENU_ITEM_NONE;
     }
-    else if (currentSetting == 4)
+    else if (currentSetting == MENU_ITEM_SCALE_MODE)
     {
       
       // EEPROM.update(SCALE_ADDRESS, scaleMode);
 
       scaleStatus = STATUS_IN_MENU;
-      currentSetting = -1;
+      currentSetting = MENU_ITEM_NONE;
     }
-    else if (currentSetting == 5)
+    else if (currentSetting == MENU_ITEM_GRINDING_MODE)
     {
       
       // EEPROM.update(GRIND_ADDRESS, grindMode);
 
       scaleStatus = STATUS_IN_MENU;
-      currentSetting = -1;
+      currentSetting = MENU_ITEM_NONE;
     }
-    else if (currentSetting == 7)
+    else if (currentSetting == MENU_ITEM_RESET)
     {
       if(greset){
         setWeight = (double)COFFEE_DOSE_WEIGHT;
@@ -238,7 +237,7 @@ void rotary_onButtonClick()
       }
       
       scaleStatus = STATUS_IN_MENU;
-      currentSetting = -1;
+      currentSetting = MENU_ITEM_NONE;
     }
   }
 }
@@ -276,7 +275,7 @@ void rotary_loop()
       Serial.println(currentMenuItem);
     }
     else if(scaleStatus == STATUS_IN_SUBMENU){
-      if(currentSetting == 3){ //offset menu
+      if(currentSetting == MENU_ITEM_OFFSET){ //offset menu
         int newValue = rotaryEncoder.read();
         Serial.print("Value: ");
 
@@ -287,14 +286,14 @@ void rotary_loop()
           offset = setWeight;     //prevent nonsensical offsets
         }
       }
-      else if(currentSetting == 4){
+      else if(currentSetting == MENU_ITEM_SCALE_MODE){
         scaleMode = !scaleMode;
       }
-      else if (currentSetting == 5)
+      else if (currentSetting == MENU_ITEM_GRINDING_MODE)
       {
         grindMode = !grindMode;
       }
-      else if (currentSetting == 7)
+      else if (currentSetting == MENU_ITEM_RESET)
       {
         greset = !greset;
       }
@@ -495,7 +494,7 @@ void scaleStatusLoop() {
 void setupScale() {
   loadcell.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
 
-  pinMode(ROTARY_ENCODER_BUTTON_PIN, INPUT); //INPUT_PULLDOWN ?
+  pinMode(ROTARY_ENCODER_BUTTON_PIN, INPUT_PULLUP); //INPUT_PULLUP ?
   pinMode(GRINDER_ACTIVE_PIN, OUTPUT);
   digitalWrite(GRINDER_ACTIVE_PIN, 0);
 

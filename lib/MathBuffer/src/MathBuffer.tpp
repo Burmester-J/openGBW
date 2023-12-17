@@ -1,4 +1,5 @@
 #include "MathBuffer.h"
+#include <functional>
 
 template<typename T, size_t S>
 constexpr MathBuffer<T,S>::MathBuffer() :

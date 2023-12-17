@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <Arduino.h>
 #include <type_traits>
+#include <functional>
 
 template<typename T, size_t S> class MathBuffer {
 public:

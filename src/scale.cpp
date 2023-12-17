@@ -1,6 +1,5 @@
 #include "scale.hpp"
 #include <MathBuffer.h>
-#include cmath
 #include <Encoder.h>
 #include <EEPROM.h>
 #include "pico/multicore.h"
@@ -9,7 +8,7 @@ HX711 loadcell;
 SimpleKalmanFilter kalmanFilter(0.02, 0.02, 0.01);
 
 // edit encoder files like in https://github.com/PaulStoffregen/Encoder/pull/85/files
-Encoder rotaryEncoder = Encoder(ROTARY_ENCODER_A_PIN, ROTARY_ENCODER_B_PIN); // ROTARY_ENCODER_BUTTON_PIN
+Encoder rotaryEncoder(ROTARY_ENCODER_A_PIN, ROTARY_ENCODER_B_PIN); // ROTARY_ENCODER_BUTTON_PIN
 
 #define ABS(a) (((a) > 0.0) ? (a) : ((a) * -1.0))
 
@@ -53,8 +52,11 @@ MenuItem menuItems[9] = {
 
 void writeSmallFloat(uint address, float float_value)
 {
-  u_int8_t int_value = static_cast<u_int8_t>(round(float_value * 10));
-  EEPROM.update(address, int_value);
+  if (float_value <= UINT8_MAX)
+  {
+    u_int8_t int_value = static_cast<u_int8_t>((float_value * 10) + 0.5f); // + 0.5f: round the value
+    EEPROM.update(address, int_value);
+  }
 }
 
 float readSmallFloat(uint address)
@@ -104,12 +106,10 @@ void rotary_onButtonClick()
   if(scaleStatus == STATUS_EMPTY){
     scaleStatus = STATUS_IN_MENU;
     currentMenuItem = 0;
-    rotaryEncoder.setAcceleration(0);
   }
   else if(scaleStatus == STATUS_IN_MENU){
     if(currentMenuItem == 6){
       scaleStatus = STATUS_EMPTY;
-      rotaryEncoder.setAcceleration(100);
       Serial.println("Exited Menu");
     }
     else if (currentMenuItem == 0)
@@ -237,7 +237,7 @@ void rotary_onButtonClick()
 
 void rotary_loop()
 {
-  if (rotaryEncoder.encoderChanged())
+  if (encoderValue != rotaryEncoder.read()) // encoder changed
   {
     wakeDisp = 1;
     lastAction = millis();
@@ -246,7 +246,7 @@ void rotary_loop()
       return;
     
     if(scaleStatus == STATUS_EMPTY){
-        int newValue = rotaryEncoder.readEncoder();
+        int newValue = rotaryEncoder.read();
         Serial.print("Value: ");
 
         setWeight += ((float)newValue - (float)encoderValue) / 10 * encoderDir;
@@ -258,7 +258,7 @@ void rotary_loop()
 
       }
     else if(scaleStatus == STATUS_IN_MENU){
-      int newValue = rotaryEncoder.readEncoder();
+      int newValue = rotaryEncoder.read();
       currentMenuItem = (currentMenuItem + (newValue - encoderValue) * encoderDir) % menuItemsCount;
       currentMenuItem = currentMenuItem < 0 ? menuItemsCount + currentMenuItem : currentMenuItem;
       encoderValue = newValue;
@@ -266,7 +266,7 @@ void rotary_loop()
     }
     else if(scaleStatus == STATUS_IN_SUBMENU){
       if(currentSetting == 3){ //offset menu
-        int newValue = rotaryEncoder.readEncoder();
+        int newValue = rotaryEncoder.read();
         Serial.print("Value: ");
 
         offset += ((float)newValue - (float)encoderValue) * encoderDir / 100;
@@ -289,17 +289,12 @@ void rotary_loop()
       }
     }
   }
-  if (rotaryEncoder.isEncoderButtonClicked())
+  if (digitalRead(ROTARY_ENCODER_BUTTON_PIN) == LOW) // button pressed
   {
     rotary_onButtonClick();
   }
-  if (wakeDisp && ((millis() - lastAction) > 1000) )
+  if (wakeDisp && ((millis() - lastAction) > 1000))
     wakeDisp = 0;
-}
-
-void readEncoderISR()
-{
-  rotaryEncoder.readEncoder_ISR();
 }
 
 void tareScale() {
@@ -491,25 +486,9 @@ void scaleStatusLoop() {
 
 
 void setupScale() {
-  rotaryEncoder.begin();
-  rotaryEncoder.setup(readEncoderISR);
-  // set boundaries and if values should cycle or not
-  // in this example we will set possible values between 0 and 1000;
-  bool circleValues = true;
-  rotaryEncoder.setBoundaries(-10000, 10000, circleValues); // minValue, maxValue, circleValues true|false (when max go to min and vice versa)
-
-  /*Rotary acceleration introduced 25.2.2021.
-   * in case range to select is huge, for example - select a value between 0 and 1000 and we want 785
-   * without accelerateion you need long time to get to that number
-   * Using acceleration, faster you turn, faster will the value raise.
-   * For fine tuning slow down.
-   */
-  // rotaryEncoder.disableAcceleration(); //acceleration is now enabled by default - disable if you dont need it
-  rotaryEncoder.setAcceleration(100); // or set the value - larger number = more accelearation; 0 or 1 means disabled acceleration
-
-
   loadcell.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
 
+  pinMode(ROTARY_ENCODER_BUTTON_PIN, INPUT);
   pinMode(GRINDER_ACTIVE_PIN, OUTPUT);
   digitalWrite(GRINDER_ACTIVE_PIN, 0);
 
@@ -524,7 +503,7 @@ void setupScale() {
   
   loadcell.set_scale(scaleFactor);
 
-  multicore_launch_core1(updateScale());
-  multicore_launch_core1(scaleStatusLoop());
+  multicore_launch_core1(updateScale);
+  multicore_launch_core1(scaleStatusLoop);
 
 }

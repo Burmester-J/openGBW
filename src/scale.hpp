@@ -30,6 +30,7 @@ class MenuItem
 #define LOADCELL_SCK_PIN 19 //25
 
 #define LOADCELL_SCALE_FACTOR 1157 // 7351
+#define LOADCELL_OFFSET 4700
 
 #define TARE_MEASURES 20 // use the average of measure for taring
 #define TARE_THRESHOLD_COUNTS 1680 // this value is specific to the loadcell and HX711

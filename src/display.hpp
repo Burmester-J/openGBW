@@ -14,8 +14,9 @@
 #define MENU_ITEM_OFFSET 3
 #define MENU_ITEM_SCALE_MODE 4
 #define MENU_ITEM_GRINDING_MODE 5
-#define MENU_ITEM_EXIT 6
-#define MENU_ITEM_RESET 7
+#define MENU_ITEM_RESET 6
+#define MENU_ITEM_EXIT 7
+#define MENU_ITEM_TARE 8
 
 extern const unsigned int SLEEP_AFTER_MS;
 extern bool dispAsleep;

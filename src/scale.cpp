@@ -37,16 +37,17 @@ bool newOffset = false;
 int currentMenuItem = 0;
 int currentSetting;
 int encoderValue = 0;
-int menuItemsCount = 9;
-MenuItem menuItems[9] = {
+int menuItemsCount = 10;
+MenuItem menuItems[10] = {
     {MENU_ITEM_MANUAL_GRIND, false, "Manual Grind", 0},
     {MENU_ITEM_CUP_WEIGHT, false, "Cup weight", 1, &setCupWeight},
     {MENU_ITEM_CALIBRATE, false, "Calibrate", 0},
     {MENU_ITEM_OFFSET, false, "Offset", 0.1, &offset},
     {MENU_ITEM_SCALE_MODE, false, "Scale Mode", 0},
     {MENU_ITEM_GRINDING_MODE, false, "Grinding Mode", 0},
+    {MENU_ITEM_RESET, false, "Reset", 0},
     {MENU_ITEM_EXIT, false, "Exit", 0},
-    {MENU_ITEM_RESET, false, "Reset", 0}}; // structure is mostly useless for now, plan on making menu easier to customize later
+    {MENU_ITEM_TARE, false, "Tare", 0}}; // structure is mostly useless for now, plan on making menu easier to customize later
 
 void writeSmallFloat(uint address, float float_value)
 {
@@ -128,8 +129,12 @@ void rotary_onButtonClick()
     currentMenuItem = MENU_ITEM_MANUAL_GRIND;
   }
   else if(scaleStatus == STATUS_IN_MENU){
+    // only commit to EEPROM when exiting menu!
     if(currentMenuItem == MENU_ITEM_EXIT){
       scaleStatus = STATUS_EMPTY;
+
+      EEPROM.commit();
+
       Serial.println("Exited Menu");
     }
     else if (currentMenuItem == MENU_ITEM_MANUAL_GRIND)
@@ -174,7 +179,7 @@ void rotary_onButtonClick()
       greset = false;
       Serial.println("Reset Menu");
     }
-    else if (currentMenuItem == MENU_ITEM_RESET) // TODO: this should probably be something else
+    else if (currentMenuItem == MENU_ITEM_TARE) 
     {
       scaleStatus = STATUS_TARING;
       currentSetting = MENU_ITEM_NONE;
@@ -186,7 +191,6 @@ void rotary_onButtonClick()
     if(currentSetting == MENU_ITEM_OFFSET){
 
       writeSmallFloat(OFFSET_ADDRESS, offset);
-      EEPROM.commit();
       
       scaleStatus = STATUS_IN_MENU;
       currentSetting = MENU_ITEM_NONE;
@@ -198,7 +202,6 @@ void rotary_onButtonClick()
         Serial.println(setCupWeight);
         
         writeSmallFloat(CUP_ADDRESS, setCupWeight);
-        EEPROM.commit();
         
         scaleStatus = STATUS_IN_MENU;
         currentSetting = MENU_ITEM_NONE;
@@ -210,7 +213,6 @@ void rotary_onButtonClick()
       Serial.println(newCalibrationValue);
 
       writeLargeFloat(CALIBRATION_ADDRESS, newCalibrationValue);
-      EEPROM.commit();
 
       loadcell.set_scale(newCalibrationValue);
       scaleStatus = STATUS_IN_MENU;
@@ -242,7 +244,6 @@ void rotary_onButtonClick()
         grindMode = true;
 
         writePresetValues();
-        EEPROM.commit();
 
         loadcell.set_scale((double)LOADCELL_SCALE_FACTOR);
       }
@@ -258,7 +259,7 @@ void rotary_onButtonClick()
 
 void rotary_loop()
 {
-  if (encoderValue != encoderRead()) // encoder changed (rounded)
+  if (encoderValue != encoderRead()) // encoder changed
   {
     wakeDisp = 1;
     lastAction = millis();
@@ -276,8 +277,6 @@ void rotary_loop()
         Serial.println(newValue);
 
         writeSmallFloat(DOSE_ADDRESS, setWeight);
-        EEPROM.commit();
-
       }
     else if(scaleStatus == STATUS_IN_MENU){
       int newValue = encoderRead();
@@ -299,15 +298,15 @@ void rotary_loop()
         }
       }
       else if(currentSetting == MENU_ITEM_SCALE_MODE){
-        scaleMode = encoderRead();
+        scaleMode = encoderRead() % 2;
       }
       else if (currentSetting == MENU_ITEM_GRINDING_MODE)
       {
-        grindMode = encoderRead();
+        grindMode = encoderRead() % 2;
       }
       else if (currentSetting == MENU_ITEM_RESET)
       {
-        greset = encoderRead();
+        greset = encoderRead() % 2;
       }
     }
   }
@@ -341,11 +340,12 @@ void tareScale() {
   // Serial.println(min);
   // Serial.println(max);
   long range = max-min;
-  // Serial.println(range);
-  // Serial.println(sum/loadcell.get_scale());
-  if (range < TARE_THRESHOLD_COUNTS)
+  Serial.println(range);
+  Serial.println(sum/loadcell.get_scale());
+  if (range < TARE_THRESHOLD_COUNTS){
     loadcell.set_offset(sum/TARE_MEASURES);
-  lastTareAt = millis();
+    lastTareAt = millis();
+  }
 }
 
 void updateScale() {
@@ -493,9 +493,10 @@ void scaleStatusLoop() {
     }
   }
   else if (scaleStatus == STATUS_TARING) {
-    if (lastTareAt != 0) {
-      scaleStatus = STATUS_EMPTY;
+    if (lastTareAt == 0) {
+      tareScale();
     }
+    scaleStatus = STATUS_EMPTY;
   }
   rotary_loop();
   delay(50);
@@ -529,6 +530,8 @@ void setupScale() {
   grindMode = (bool)EEPROM.read(GRIND_ADDRESS); // true
   
   loadcell.set_scale(scaleFactor);
+  loadcell.set_offset(LOADCELL_OFFSET);
+  lastTareAt = 0;
 
   Serial.println("Scale Setup");
 }

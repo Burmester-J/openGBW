@@ -298,15 +298,27 @@ void rotary_loop()
         }
       }
       else if(currentSetting == MENU_ITEM_SCALE_MODE){
-        scaleMode = encoderRead() % 2;
+        int newValue = encoderRead();
+
+        scaleMode = newValue % 2;
+
+        encoderValue = newValue;
       }
       else if (currentSetting == MENU_ITEM_GRINDING_MODE)
       {
-        grindMode = encoderRead() % 2;
+        int newValue = encoderRead();
+
+        grindMode = newValue % 2;
+
+        encoderValue = newValue;
       }
       else if (currentSetting == MENU_ITEM_RESET)
       {
-        greset = encoderRead() % 2;
+        int newValue = encoderRead();
+
+        greset = newValue % 2;
+
+        encoderValue = newValue;
       }
     }
   }

@@ -403,8 +403,11 @@ void scaleStatusLoop() {
       scaleStatus = STATUS_TARING;
     }
 
-    if (ABS(weightHistory.minSince((int64_t)millis() - 1000) - setCupWeight) < CUP_DETECTION_TOLERANCE 
-        && ABS(weightHistory.maxSince((int64_t)millis() - 1000) - setCupWeight) < CUP_DETECTION_TOLERANCE
+    // if (ABS(weightHistory.minSince((int64_t)millis() - 1000) - setCupWeight) < CUP_DETECTION_TOLERANCE 
+    //     && ABS(weightHistory.maxSince((int64_t)millis() - 1000) - setCupWeight) < CUP_DETECTION_TOLERANCE
+    //     && (lastTareAt != 0)
+    //     && scaleReady)
+    if (digitalRead(GRIND_BUTTON_PIN)
         && (lastTareAt != 0)
         && scaleReady)
     {
@@ -523,6 +526,7 @@ void setupScale() {
 
   pinMode(ROTARY_ENCODER_BUTTON_PIN, INPUT_PULLUP); 
   pinMode(GRINDER_ACTIVE_PIN, OUTPUT);
+  pinMode(GRIND_BUTTON_PIN, INPUT);
   digitalWrite(GRINDER_ACTIVE_PIN, 0);
 
   EEPROM.begin(256);

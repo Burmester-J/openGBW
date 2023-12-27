@@ -189,6 +189,7 @@ void rotary_onButtonClick()
   }
   else if(scaleStatus == STATUS_IN_SUBMENU){
     if(currentSetting == MENU_ITEM_OFFSET){
+      Serial.println(offset);
 
       writeSmallFloat(OFFSET_ADDRESS, offset);
       
@@ -252,7 +253,7 @@ void rotary_onButtonClick()
       currentSetting = MENU_ITEM_NONE;
     }
   }
-  delay(50);
+  delay(100);
 }
 
 
@@ -292,6 +293,8 @@ void rotary_loop()
 
         offset += ((float)newValue - (float)encoderValue) * encoderDir / 100;
         encoderValue = newValue;
+
+        Serial.println(offset);
 
         if(abs(offset) >= setWeight){
           offset = setWeight;     //prevent nonsensical offsets
@@ -349,8 +352,7 @@ void tareScale() {
     }
     sum += result;
   }
-  // Serial.println(min);
-  // Serial.println(max);
+  Serial.println(loadcell.get_scale());
   long range = max-min;
   Serial.println(range);
   Serial.println(sum/loadcell.get_scale());
@@ -448,8 +450,8 @@ void scaleStatusLoop() {
       return;
     }
 
-    if ( ((millis() - startedGrindingAt) > GRINDING_DELAY_TOLERANCE) // started grinding at least 3s ago
-          && ((scaleWeight - weightHistory.firstValueOlderThan(millis() - 2000)) < 0.5) // less than a gram has been grinded in the last 2 second
+    if ( ((millis() - startedGrindingAt) > GRINDING_DELAY_TOLERANCE) // started grinding at least 5s ago
+          && ((scaleWeight - weightHistory.firstValueOlderThan(millis() - 3000)) < 0.5) // less than a gram has been ground in the last 3 second
           && !scaleMode) {
       Serial.println("Failed because no change in weight was detected");
       
@@ -526,7 +528,7 @@ void setupScale() {
 
   pinMode(ROTARY_ENCODER_BUTTON_PIN, INPUT_PULLUP); 
   pinMode(GRINDER_ACTIVE_PIN, OUTPUT);
-  pinMode(GRIND_BUTTON_PIN, INPUT);
+  pinMode(GRIND_BUTTON_PIN, INPUT_PULLDOWN);
   digitalWrite(GRINDER_ACTIVE_PIN, 0);
 
   EEPROM.begin(256);

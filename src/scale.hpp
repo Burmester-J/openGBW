@@ -29,7 +29,7 @@ class MenuItem
 #define LOADCELL_DOUT_PIN 18 //24
 #define LOADCELL_SCK_PIN 19 //25
 
-#define LOADCELL_SCALE_FACTOR 1157 // 7351
+#define LOADCELL_SCALE_FACTOR 1079 // 7351
 #define LOADCELL_OFFSET 4700
 
 #define TARE_MEASURES 20 // use the average of measure for taring
@@ -37,7 +37,7 @@ class MenuItem
 #define SIGNIFICANT_WEIGHT_CHANGE 5 // 5 grams changes are used to detect a significant change
 #define COFFEE_DOSE_WEIGHT 16.5
 #define COFFEE_DOSE_OFFSET -2.5
-#define MAX_GRINDING_TIME 30000 // 30 seconds diff
+#define MAX_GRINDING_TIME 60000 // 60 seconds diff
 #define GRINDING_DELAY_TOLERANCE 5000 // 5 seconds
 #define GRINDING_FAILED_WEIGHT_TO_RESET 150 // force on balance need to be measured to reset grinding
 

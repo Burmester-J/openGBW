@@ -33,7 +33,7 @@ class MenuItem
 #define TARE_THRESHOLD_COUNTS 2 * 1680 // this value is specific to the loadcell and HX711
 #define SIGNIFICANT_WEIGHT_CHANGE 5 // 5 grams changes are used to detect a significant change
 #define COFFEE_DOSE_WEIGHT 16.5
-#define COFFEE_DOSE_OFFSET -2.5
+#define COFFEE_DOSE_OFFSET -0.25
 #define MAX_GRINDING_TIME 60000 // 60 seconds diff
 #define GRINDING_DELAY_TOLERANCE 5000 // 5 seconds
 #define GRINDING_FAILED_WEIGHT_TO_RESET 150 // force on balance need to be measured to reset grinding

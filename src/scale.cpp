@@ -44,12 +44,42 @@ MenuItem menuItems[6] = {
     {MENU_ITEM_EXIT, false, "Exit", 0}
     }; // structure is mostly useless for now, plan on making menu easier to customize later
 
+void writeTinyFloat(uint address, float float_value)
+{
+  if (float_value >= INT8_MIN && float_value <= INT8_MAX)
+  {
+    float rounded_float = 0;
+    if (float_value >= 0) {
+      rounded_float = (float_value * 100) + 0.5f; // + 0.5f: round the value
+    }
+    else {
+      rounded_float = (float_value * 100) - 0.5f; // - 0.5f: round the value
+    }
+
+    int8_t int_value = static_cast<int8_t>(rounded_float); // + 0.5f: round the value
+    EEPROM.update(address, int_value);
+  }
+  else {
+    Serial.println("Can't save values above 1.27 or below -1.27!");
+  }
+}
+
+float readTinyFloat(uint address)
+{
+  int8_t int_value = EEPROM.read(address);
+  return static_cast<float>(int_value) / 100.0;
+}
+
+
 void writeSmallFloat(uint address, float float_value)
 {
-  if (float_value <= UINT8_MAX)
+  if (float_value >= 0 && float_value <= UINT8_MAX)
   {
     u_int8_t int_value = static_cast<u_int8_t>((float_value * 10) + 0.5f); // + 0.5f: round the value
     EEPROM.update(address, int_value);
+  }
+  else {
+    Serial.println("Can't save values above 25.5 or below 0!");
   }
 }
 
@@ -77,7 +107,7 @@ void writePresetValues()
   EEPROM.update(INIT_ADDRESS, 17);
   writeLargeFloat(CALIBRATION_ADDRESS, LOADCELL_SCALE_FACTOR);
   writeSmallFloat(DOSE_ADDRESS, COFFEE_DOSE_WEIGHT);
-  writeSmallFloat(OFFSET_ADDRESS, COFFEE_DOSE_OFFSET);
+  writeTinyFloat(OFFSET_ADDRESS, COFFEE_DOSE_OFFSET);
 }
 
 int encoderRead()
@@ -150,7 +180,7 @@ void rotary_onButtonClick()
     if(currentSetting == MENU_ITEM_OFFSET){
       Serial.println(offset);
 
-      writeSmallFloat(OFFSET_ADDRESS, offset);
+      writeTinyFloat(OFFSET_ADDRESS, offset);
       
       scaleStatus = STATUS_IN_MENU;
       currentSetting = MENU_ITEM_NONE;
@@ -318,10 +348,6 @@ void scaleStatusLoop() {
       scaleStatus = STATUS_TARING;
     }
 
-    // if (ABS(weightHistory.minSince((int64_t)millis() - 1000) - setCupWeight) < CUP_DETECTION_TOLERANCE 
-    //     && ABS(weightHistory.maxSince((int64_t)millis() - 1000) - setCupWeight) < CUP_DETECTION_TOLERANCE
-    //     && (lastTareAt != 0)
-    //     && scaleReady)
     if (digitalRead(GRIND_BUTTON_PIN)
         && (lastTareAt != 0)
         && scaleReady)
@@ -431,7 +457,7 @@ void setupScale() {
   
   double scaleFactor = readLargeFloat(CALIBRATION_ADDRESS); // (double)LOADCELL_SCALE_FACTOR
   setWeight = readSmallFloat(DOSE_ADDRESS); // (double)COFFEE_DOSE_WEIGHT
-  offset = readSmallFloat(OFFSET_ADDRESS); // (double)COFFEE_DOSE_OFFSET
+  offset = readTinyFloat(OFFSET_ADDRESS); // (double)COFFEE_DOSE_OFFSET
   
   loadcell.set_scale(scaleFactor);
   loadcell.set_offset(LOADCELL_OFFSET);

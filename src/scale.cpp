@@ -14,10 +14,8 @@ Encoder* rotaryEncoder;
 double scaleWeight = 0; //current weight
 bool wakeDisp = false; //wake up display with rotary click
 double setWeight = 0; //desired amount of coffee
-double setCupWeight = 0; //cup weight set by user
 double offset = 0; //stop x grams prios to set weight
-bool scaleMode = false; //use as regular scale with timer if true
-bool grindMode = true;  //false for impulse to start/stop grinding, true for continuous on while grinding
+// bool scaleMode = false; //use as regular scale with timer if true
 bool grinderActive = false; //needed for continuous mode
 MathBuffer<double, 100> weightHistory;
 
@@ -37,17 +35,14 @@ bool newOffset = false;
 int currentMenuItem = 0;
 int currentSetting;
 int encoderValue = 0;
-int menuItemsCount = 10;
-MenuItem menuItems[10] = {
-    {MENU_ITEM_MANUAL_GRIND, false, "Manual Grind", 0},
-    {MENU_ITEM_CUP_WEIGHT, false, "Cup weight", 1, &setCupWeight},
+int menuItemsCount = 6;
+MenuItem menuItems[6] = {
+    {MENU_ITEM_TARE, false, "Tare", 0},
     {MENU_ITEM_CALIBRATE, false, "Calibrate", 0},
     {MENU_ITEM_OFFSET, false, "Offset", 0.1, &offset},
-    {MENU_ITEM_SCALE_MODE, false, "Scale Mode", 0},
-    {MENU_ITEM_GRINDING_MODE, false, "Grinding Mode", 0},
     {MENU_ITEM_RESET, false, "Reset", 0},
-    {MENU_ITEM_EXIT, false, "Exit", 0},
-    {MENU_ITEM_TARE, false, "Tare", 0}}; // structure is mostly useless for now, plan on making menu easier to customize later
+    {MENU_ITEM_EXIT, false, "Exit", 0}
+    }; // structure is mostly useless for now, plan on making menu easier to customize later
 
 void writeSmallFloat(uint address, float float_value)
 {
@@ -83,9 +78,6 @@ void writePresetValues()
   writeLargeFloat(CALIBRATION_ADDRESS, LOADCELL_SCALE_FACTOR);
   writeSmallFloat(DOSE_ADDRESS, COFFEE_DOSE_WEIGHT);
   writeSmallFloat(OFFSET_ADDRESS, COFFEE_DOSE_OFFSET);
-  writeSmallFloat(CUP_ADDRESS, CUP_WEIGHT);
-  EEPROM.update(SCALE_ADDRESS, false);
-  EEPROM.update(GRIND_ADDRESS, true);
 }
 
 int encoderRead()
@@ -102,17 +94,8 @@ int encoderRead()
 
 void grinderToggle()
 {
-  if(!scaleMode){
-    if(grindMode){
-      grinderActive = !grinderActive;
-      digitalWrite(GRINDER_ACTIVE_PIN, grinderActive);
-    }
-    else{
-      digitalWrite(GRINDER_ACTIVE_PIN, 1);
-      delay(100);
-      digitalWrite(GRINDER_ACTIVE_PIN, 0);
-    }
-  }
+  grinderActive = !grinderActive;
+  digitalWrite(GRINDER_ACTIVE_PIN, grinderActive);
 }
 
 
@@ -126,7 +109,7 @@ void rotary_onButtonClick()
 
   if(scaleStatus == STATUS_EMPTY){
     scaleStatus = STATUS_IN_MENU;
-    currentMenuItem = MENU_ITEM_MANUAL_GRIND;
+    currentMenuItem = MENU_ITEM_TARE;
   }
   else if(scaleStatus == STATUS_IN_MENU){
     // only commit to EEPROM when exiting menu!
@@ -137,40 +120,16 @@ void rotary_onButtonClick()
 
       Serial.println("Exited Menu");
     }
-    else if (currentMenuItem == MENU_ITEM_MANUAL_GRIND)
-    {
-      grinderToggle();
-      currentSetting = MENU_ITEM_MANUAL_GRIND;
-      Serial.println("Manual Grind Menu");
-    }
     else if (currentMenuItem == MENU_ITEM_OFFSET){
       scaleStatus = STATUS_IN_SUBMENU;
       currentSetting = MENU_ITEM_OFFSET;
       Serial.println("Offset Menu");
-    }
-    else if (currentMenuItem == MENU_ITEM_CUP_WEIGHT)
-    {
-      scaleStatus = STATUS_IN_SUBMENU;
-      currentSetting = MENU_ITEM_CUP_WEIGHT;
-      Serial.println("Cup Menu");
     }
     else if (currentMenuItem == MENU_ITEM_CALIBRATE)
     {
       scaleStatus = STATUS_IN_SUBMENU;
       currentSetting = MENU_ITEM_CALIBRATE;
       Serial.println("Calibration Menu");
-    }
-    else if (currentMenuItem == MENU_ITEM_SCALE_MODE)
-    {
-      scaleStatus = STATUS_IN_SUBMENU;
-      currentSetting = MENU_ITEM_SCALE_MODE;
-      Serial.println("Scale Mode Menu");
-    }
-    else if (currentMenuItem == MENU_ITEM_GRINDING_MODE)
-    {
-      scaleStatus = STATUS_IN_SUBMENU;
-      currentSetting = MENU_ITEM_GRINDING_MODE;
-      Serial.println("Grind Mode Menu");
     }
     else if (currentMenuItem == MENU_ITEM_RESET)
     {
@@ -196,18 +155,6 @@ void rotary_onButtonClick()
       scaleStatus = STATUS_IN_MENU;
       currentSetting = MENU_ITEM_NONE;
     }
-    else if (currentSetting == MENU_ITEM_CUP_WEIGHT)
-    {
-      if(scaleWeight > 30){       //prevent accidental setting with no cup
-        setCupWeight = scaleWeight;
-        Serial.println(setCupWeight);
-        
-        writeSmallFloat(CUP_ADDRESS, setCupWeight);
-        
-        scaleStatus = STATUS_IN_MENU;
-        currentSetting = MENU_ITEM_NONE;
-      }
-    }
     else if (currentSetting == MENU_ITEM_CALIBRATE)
     {
       double newCalibrationValue = readLargeFloat(CALIBRATION_ADDRESS) * (scaleWeight / 100);
@@ -219,30 +166,11 @@ void rotary_onButtonClick()
       scaleStatus = STATUS_IN_MENU;
       currentSetting = MENU_ITEM_NONE;
     }
-    else if (currentSetting == MENU_ITEM_SCALE_MODE)
-    {
-      
-      EEPROM.update(SCALE_ADDRESS, scaleMode);
-
-      scaleStatus = STATUS_IN_MENU;
-      currentSetting = MENU_ITEM_NONE;
-    }
-    else if (currentSetting == MENU_ITEM_GRINDING_MODE)
-    {
-      
-      EEPROM.update(GRIND_ADDRESS, grindMode);
-
-      scaleStatus = STATUS_IN_MENU;
-      currentSetting = MENU_ITEM_NONE;
-    }
     else if (currentSetting == MENU_ITEM_RESET)
     {
       if(greset){
         setWeight = (double)COFFEE_DOSE_WEIGHT;
         offset = (double)COFFEE_DOSE_OFFSET;
-        setCupWeight = (double)CUP_WEIGHT;
-        scaleMode = false;
-        grindMode = true;
 
         writePresetValues();
 
@@ -299,21 +227,6 @@ void rotary_loop()
         if(abs(offset) >= setWeight){
           offset = setWeight;     //prevent nonsensical offsets
         }
-      }
-      else if(currentSetting == MENU_ITEM_SCALE_MODE){
-        int newValue = encoderRead();
-
-        scaleMode = newValue % 2;
-
-        encoderValue = newValue;
-      }
-      else if (currentSetting == MENU_ITEM_GRINDING_MODE)
-      {
-        int newValue = encoderRead();
-
-        grindMode = newValue % 2;
-
-        encoderValue = newValue;
       }
       else if (currentSetting == MENU_ITEM_RESET)
       {
@@ -418,10 +331,8 @@ void scaleStatusLoop() {
       cupWeightEmpty = weightHistory.averageSince((int64_t)millis() - 500);
       scaleStatus = STATUS_GRINDING_IN_PROGRESS;
       
-      if(!scaleMode){
-        newOffset = true;
-        startedGrindingAt = millis();
-      }
+      newOffset = true;
+      startedGrindingAt = millis();
       
       grinderToggle();
       return;
@@ -432,17 +343,8 @@ void scaleStatusLoop() {
       grinderToggle();
       scaleStatus = STATUS_GRINDING_FAILED;
     }
-    //Serial.printf("Scale mode: %d\n", scaleMode);
-    //Serial.printf("Started grinding at: %d\n", startedGrindingAt);
-    //Serial.printf("Weight: %f\n", cupWeightEmpty - scaleWeight);
-    if (scaleMode && (startedGrindingAt == 0) && ((scaleWeight - cupWeightEmpty) >= 0.1))
-    {
-      Serial.printf("Started grinding at: %d\n", millis());
-      startedGrindingAt = millis();
-      return;
-    }
 
-    if (((millis() - startedGrindingAt) > MAX_GRINDING_TIME) && !scaleMode) {
+    if (((millis() - startedGrindingAt) > MAX_GRINDING_TIME)) {
       Serial.println("Failed because grinding took too long");
       
       grinderToggle();
@@ -451,8 +353,8 @@ void scaleStatusLoop() {
     }
 
     if ( ((millis() - startedGrindingAt) > GRINDING_DELAY_TOLERANCE) // started grinding at least 5s ago
-          && ((scaleWeight - weightHistory.firstValueOlderThan(millis() - 3000)) < 0.5) // less than a gram has been ground in the last 3 second
-          && !scaleMode) {
+          && ((scaleWeight - weightHistory.firstValueOlderThan(millis() - 3000)) < 0.5)) // less than a gram has been ground in the last 3 second
+    {
       Serial.println("Failed because no change in weight was detected");
       
       grinderToggle();
@@ -460,20 +362,7 @@ void scaleStatusLoop() {
       return;
     }
 
-    // if (weightHistory.minSince((int64_t)millis() - 200) < (cupWeightEmpty - CUP_DETECTION_TOLERANCE) 
-    //       && !scaleMode) {
-    //   Serial.printf("Failed because weight too low, min: %f, min value: %f\n", weightHistory.minSince((int64_t)millis() - 200), CUP_WEIGHT + CUP_DETECTION_TOLERANCE);
-      
-    //   grinderToggle();
-    //   scaleStatus = STATUS_GRINDING_FAILED;
-    //   continue;
-    // }
-    double currentOffset = offset;
-    if(scaleMode){
-      currentOffset = 0;
-    }
-
-    if (weightHistory.maxSince((int64_t)millis() - 200) >= (cupWeightEmpty + setWeight + currentOffset)) {
+    if (weightHistory.maxSince((int64_t)millis() - 200) >= (cupWeightEmpty + setWeight + offset)) {
       Serial.println("Finished grinding");
       finishedGrindingAt = millis();
       
@@ -543,9 +432,6 @@ void setupScale() {
   double scaleFactor = readLargeFloat(CALIBRATION_ADDRESS); // (double)LOADCELL_SCALE_FACTOR
   setWeight = readSmallFloat(DOSE_ADDRESS); // (double)COFFEE_DOSE_WEIGHT
   offset = readSmallFloat(OFFSET_ADDRESS); // (double)COFFEE_DOSE_OFFSET
-  setCupWeight = readSmallFloat(CUP_ADDRESS); // (double)CUP_WEIGHT
-  scaleMode = (bool)EEPROM.read(SCALE_ADDRESS); // false
-  grindMode = (bool)EEPROM.read(GRIND_ADDRESS); // true
   
   loadcell.set_scale(scaleFactor);
   loadcell.set_offset(LOADCELL_OFFSET);

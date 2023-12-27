@@ -71,74 +71,6 @@ void showOffsetMenu(){
 }
 
 
-void showManualGrindMenu(){
-  char buf[16];
-  u8g2.clearBuffer();
-  u8g2.setFontPosTop();
-  u8g2.setFont(u8g2_font_7x13_tr);
-  CenterPrintToScreen("Click to start", 20);
-  u8g2.setFont(u8g2_font_7x13_tr);
-  CenterPrintToScreen("grinding", 38);
-  u8g2.sendBuffer();
-}
-
-
-void showScaleModeMenu()
-{
-  char buf[16];
-  u8g2.clearBuffer();
-  u8g2.setFontPosTop();
-  u8g2.setFont(u8g2_font_7x14B_tf);
-  CenterPrintToScreen("Set Scale Mode", 0);
-  u8g2.setFont(u8g2_font_7x13_tr);
-  if(scaleMode){
-    LeftPrintToScreen("GBW", 19);
-    LeftPrintActiveToScreen("Scale only", 35);
-  }
-  else{
-    LeftPrintActiveToScreen("GBW", 19);
-    LeftPrintToScreen("Scale only", 35);
-  }
-  u8g2.sendBuffer();
-}
-
-void showGrindModeMenu()
-{
-  char buf[16];
-  u8g2.clearBuffer();
-  u8g2.setFontPosTop();
-  u8g2.setFont(u8g2_font_7x14B_tf);
-  CenterPrintToScreen("Set Grinder ", 0);
-  CenterPrintToScreen("Start/Stop Mode", 19);
-  u8g2.setFont(u8g2_font_7x13_tr);
-  if (grindMode)
-  {
-    LeftPrintActiveToScreen("Continuous", 35);
-    LeftPrintToScreen("Impulse", 51);
-  }
-  else
-  {
-    LeftPrintToScreen("Continuous", 35);
-    LeftPrintActiveToScreen("Impulse", 51);
-  }
-  u8g2.sendBuffer();
-}
-
-void showCupMenu()
-{
-  char buf[16];
-  u8g2.clearBuffer();
-  u8g2.setFontPosTop();
-  u8g2.setFont(u8g2_font_7x14B_tf);
-  CenterPrintToScreen("Cup Weight", 0);
-  u8g2.setFont(u8g2_font_7x13_tr);
-  snprintf(buf, sizeof(buf), "%3.1fg", scaleWeight);
-  CenterPrintToScreen(buf, 19);
-  LeftPrintToScreen("Place cup on scale", 35);
-  LeftPrintToScreen("and press button", 51);
-  u8g2.sendBuffer();
-}
-
 void showCalibrationMenu(){
   u8g2.clearBuffer();
   u8g2.setFontPosTop();
@@ -176,23 +108,9 @@ void showSetting(){
   if(currentSetting == MENU_ITEM_OFFSET){
     showOffsetMenu();
   }
-  else if(currentSetting == MENU_ITEM_MANUAL_GRIND){
-    showManualGrindMenu();
-  }
-  else if(currentSetting == MENU_ITEM_CUP_WEIGHT){
-    showCupMenu();
-  }
   else if (currentSetting == MENU_ITEM_CALIBRATE)
   {
     showCalibrationMenu();
-  }
-  else if (currentSetting == MENU_ITEM_SCALE_MODE)
-  {
-    showScaleModeMenu();
-  }
-  else if (currentSetting == MENU_ITEM_GRINDING_MODE)
-  {
-    showGrindModeMenu();
   }
   else if (currentSetting == MENU_ITEM_RESET)
   {
